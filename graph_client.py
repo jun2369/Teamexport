@@ -1,5 +1,6 @@
 import base64
 import re
+from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,7 +20,7 @@ def _get(token, url):
 
 def list_chats(token):
     chats = []
-    url = f"{GRAPH_BASE}/me/chats?$expand=members,lastMessagePreview&$top=50"
+    url = f"{GRAPH_BASE}/me/chats?$expand=members,lastMessagePreview,viewpoint&$top=50"
     while url:
         data = _get(token, url)
         chats.extend(data.get("value", []))
@@ -61,15 +62,22 @@ def chat_display_name(token, chat):
     return ", ".join(names)
 
 
+def _parse_dt(value):
+    if not value:
+        return None
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
 def _count_messages_since(token, chat_id, since, page_size=25):
     url = f"{GRAPH_BASE}/chats/{chat_id}/messages?$top={page_size}&$orderby=createdDateTime desc"
     data = _get(token, url)
+    since_dt = _parse_dt(since)
     count = 0
     for raw in data.get("value", []):
         if raw.get("messageType") != "message":
             continue
-        created = raw.get("createdDateTime", "")
-        if since and created <= since:
+        created_dt = _parse_dt(raw.get("createdDateTime"))
+        if since_dt and created_dt and created_dt <= since_dt:
             break
         count += 1
     return f"{page_size}+" if count >= page_size else count
@@ -89,7 +97,7 @@ def chat_unread_info(token, chat):
         # API gap, especially for group chats). Without it we can't tell
         # whether the chat is actually unread, so don't guess "unread".
         return {"unread": False, "count": None}
-    if last_created <= last_read:
+    if _parse_dt(last_created) <= _parse_dt(last_read):
         return {"unread": False, "count": None}
 
     count = _count_messages_since(token, chat["id"], last_read)
