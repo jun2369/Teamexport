@@ -11,6 +11,7 @@ from export_docx import build_docx, build_txt
 app = Flask(__name__)
 app.secret_key = config.FLASK_SECRET_KEY
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
+app.config["SESSION_COOKIE_SECURE"] = config.REDIRECT_URI.startswith("https")
 
 MAX_DATE_RANGE_DAYS = 20
 
