@@ -84,7 +84,12 @@ def chat_unread_info(token, chat):
         return {"unread": False, "count": None}
 
     last_read = (chat.get("viewpoint") or {}).get("lastMessageReadDateTime")
-    if last_read and last_created <= last_read:
+    if not last_read:
+        # Graph frequently omits viewpoint.lastMessageReadDateTime (a known
+        # API gap, especially for group chats). Without it we can't tell
+        # whether the chat is actually unread, so don't guess "unread".
+        return {"unread": False, "count": None}
+    if last_created <= last_read:
         return {"unread": False, "count": None}
 
     count = _count_messages_since(token, chat["id"], last_read)
