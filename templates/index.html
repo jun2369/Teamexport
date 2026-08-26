@@ -127,7 +127,19 @@
   .msg-meta { font-weight: 600; font-size: 13px; color: #333; }
   .msg-time { font-weight: normal; color: #888; font-size: 12px; margin-left: 8px; }
   .msg-text { white-space: pre-wrap; margin-top: 4px; }
-  .msg img { max-width: 200px; max-height: 150px; display: block; margin-top: 6px; border: 1px solid #ccc; border-radius: 4px; }
+  .msg img { max-width: 200px; max-height: 150px; display: block; margin-top: 6px; border: 1px solid #ccc; border-radius: 4px; cursor: zoom-in; }
+
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+  #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 4px; }
   .msg-attachment { display: block; margin-top: 6px; font-size: 13px; color: #2b579a; }
 
   /* ---- Unread view ---- */
@@ -217,6 +229,7 @@
       </div>
     </main>
   </div>
+  <div id="lightbox"><img id="lightboxImg"></div>
 {% else %}
   <div class="panel" style="max-width: 480px; margin: 60px auto;">
     <p>Sign in with your Microsoft Teams account to use the exporter.</p>
@@ -307,6 +320,15 @@ async function loadChats(preserveSelection = true) {
   updateUnreadBadge(chats);
 }
 
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+
+document.getElementById('lightbox').addEventListener('click', () => {
+  document.getElementById('lightbox').style.display = 'none';
+});
+
 function buildMessageEl(m) {
   const div = document.createElement('div');
   div.className = 'msg';
@@ -335,6 +357,7 @@ function buildMessageEl(m) {
   m.image_data_uris.forEach(uri => {
     const img = document.createElement('img');
     img.src = uri;
+    img.addEventListener('click', () => openLightbox(uri));
     content.appendChild(img);
   });
 
