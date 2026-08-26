@@ -111,34 +111,6 @@ def _fetch_hosted_image(token, url):
     return resp.content, content_type
 
 
-def _encode_share_url(url):
-    """Encode a SharePoint/OneDrive sharing URL as a Graph "shares" ID.
-
-    Per https://learn.microsoft.com/graph/api/shares-get: base64-encode the
-    URL, convert to unpadded base64url, and prefix with "u!".
-    """
-    b64 = base64.b64encode(url.encode("utf-8")).decode("ascii")
-    b64url = b64.rstrip("=").replace("/", "_").replace("+", "-")
-    return f"u!{b64url}"
-
-
-def fetch_attachment(token, url):
-    """Download a chat message's file attachment via its sharing URL.
-
-    Fetches with the caller's own token so the browser never needs its own
-    SharePoint session for the file's tenant/account — avoids "you need
-    access" errors when the browser happens to have a different Microsoft
-    account signed in for office.com than the one signed into this app.
-    """
-    share_id = _encode_share_url(url)
-    resp = requests.get(
-        f"{GRAPH_BASE}/shares/{share_id}/driveItem/content",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
-
-
 def _file_ext(name):
     return name.rsplit(".", 1)[-1].upper() if "." in name else "FILE"
 

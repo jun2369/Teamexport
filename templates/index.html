@@ -511,7 +511,7 @@ function highlightHtml(s, keyword) {
   return escaped.replace(new RegExp(escapedKeyword, 'gi'), match => `<mark>${match}</mark>`);
 }
 
-function buildMessageEl(m, keyword, chatId) {
+function buildMessageEl(m, keyword) {
   const div = document.createElement('div');
   div.className = 'msg';
 
@@ -543,10 +543,12 @@ function buildMessageEl(m, keyword, chatId) {
     content.appendChild(img);
   });
 
-  (m.attachments || []).forEach((att, i) => {
+  (m.attachments || []).forEach(att => {
     const link = document.createElement('a');
     link.className = 'msg-attachment';
-    link.href = `/api/attachment?${new URLSearchParams({ chat_id: chatId, message_id: m.id, index: i })}`;
+    link.href = att.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
     link.textContent = `\u{1F4CE} ${att.name}`;
     content.appendChild(link);
   });
@@ -565,7 +567,7 @@ function renderMessages(messages, prepend) {
     if (!latestLoadedCreated || m.created > latestLoadedCreated) {
       latestLoadedCreated = m.created;
     }
-    const el = buildMessageEl(m, currentKeyword, currentChatId);
+    const el = buildMessageEl(m, currentKeyword);
     if (prepend) container.insertBefore(el, container.firstChild);
     else container.appendChild(el);
   });
@@ -723,7 +725,7 @@ async function loadUnread() {
 
     const body = document.createElement('div');
     body.className = 'unreadGroup-body';
-    g.messages.forEach(m => body.appendChild(buildMessageEl(m, '', g.chat_id)));
+    g.messages.forEach(m => body.appendChild(buildMessageEl(m)));
 
     group.appendChild(header);
     group.appendChild(body);

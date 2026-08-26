@@ -6,12 +6,12 @@ import os
 #   Supported account types: Accounts in this organizational directory only
 #   Authentication -> Add a platform -> Web -> redirect URI: <REDIRECT_URI below>
 #   Certificates & secrets -> New client secret -> set MS_CLIENT_SECRET env var to its value
-#   API permissions -> Microsoft Graph -> Delegated -> add: User.Read, Chat.Read, Files.Read
+#   API permissions -> Microsoft Graph -> Delegated -> add: User.Read, Chat.Read
 CLIENT_ID = "58511677-b8c8-4d6e-bf67-fa86799d13d0"
 TENANT_ID = "a7f846ec-8219-438c-8896-9e45cdbbe994"
 
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES = ["User.Read", "Chat.Read", "Files.Read"]
+SCOPES = ["User.Read", "Chat.Read"]
 
 # Client secret for the app registration and the key Flask uses to sign
 # session cookies. Read from the environment rather than hardcoded here,
