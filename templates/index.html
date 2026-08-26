@@ -127,6 +127,7 @@
   .msg-meta { font-weight: 600; font-size: 13px; color: #333; }
   .msg-time { font-weight: normal; color: #888; font-size: 12px; margin-left: 8px; }
   .msg-text { white-space: pre-wrap; margin-top: 4px; }
+  .msg mark { background: #ffe066; color: inherit; border-radius: 2px; padding: 0 1px; }
   .msg img { max-width: 200px; max-height: 150px; display: block; margin-top: 6px; border: 1px solid #ccc; border-radius: 4px; cursor: zoom-in; }
 
   #lightbox {
@@ -242,6 +243,7 @@
 const defaultTopic = {{ default_topic|tojson }};
 let currentChatId = null;
 let currentChatTopic = null;
+let currentKeyword = '';
 let hasMore = false;
 let loadingMore = false;
 let latestLoadedCreated = null;
@@ -329,7 +331,20 @@ document.getElementById('lightbox').addEventListener('click', () => {
   document.getElementById('lightbox').style.display = 'none';
 });
 
-function buildMessageEl(m) {
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function highlightHtml(s, keyword) {
+  const escaped = escapeHtml(s);
+  if (!keyword) return escaped;
+  const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(escapedKeyword, 'gi'), match => `<mark>${match}</mark>`);
+}
+
+function buildMessageEl(m, keyword) {
   const div = document.createElement('div');
   div.className = 'msg';
 
@@ -341,7 +356,7 @@ function buildMessageEl(m) {
   const content = document.createElement('div');
   const meta = document.createElement('div');
   meta.className = 'msg-meta';
-  meta.textContent = m.sender;
+  meta.innerHTML = highlightHtml(m.sender, keyword);
   const time = document.createElement('span');
   time.className = 'msg-time';
   time.textContent = new Date(m.created).toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' });
@@ -349,7 +364,7 @@ function buildMessageEl(m) {
 
   const text = document.createElement('div');
   text.className = 'msg-text';
-  text.textContent = m.text;
+  text.innerHTML = highlightHtml(m.text, keyword);
 
   content.appendChild(meta);
   content.appendChild(text);
@@ -385,7 +400,7 @@ function renderMessages(messages, prepend) {
     if (!latestLoadedCreated || m.created > latestLoadedCreated) {
       latestLoadedCreated = m.created;
     }
-    const el = buildMessageEl(m);
+    const el = buildMessageEl(m, currentKeyword);
     if (prepend) container.insertBefore(el, container.firstChild);
     else container.appendChild(el);
   });
@@ -438,6 +453,7 @@ async function runSearch() {
   const start = document.getElementById('startDate').value;
   const end = document.getElementById('endDate').value;
   const keyword = document.getElementById('keyword').value.trim();
+  currentKeyword = keyword;
 
   if (start && end) {
     const days = (new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24);
@@ -575,6 +591,7 @@ function resetAll() {
   document.getElementById('keyword').value = '';
   currentChatId = null;
   currentChatTopic = null;
+  currentKeyword = '';
   resetMessageView();
   document.getElementById('status').textContent = '';
 }

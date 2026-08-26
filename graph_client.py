@@ -122,6 +122,22 @@ def _html_to_text(html):
     return soup.get_text().strip()
 
 
+def _sender_name(raw):
+    from_field = raw.get("from") or {}
+    if from_field.get("user"):
+        return from_field["user"].get("displayName", "Unknown")
+    if from_field.get("application"):
+        return from_field["application"].get("displayName", "Unknown")
+    return "Unknown"
+
+
+def _matches_keyword(raw, html, keyword):
+    if not keyword:
+        return True
+    needle = keyword.lower()
+    return needle in _html_to_text(html).lower() or needle in _sender_name(raw).lower()
+
+
 def _extract_message(token, raw):
     body = raw.get("body", {}) or {}
     html = body.get("content", "") or ""
@@ -155,16 +171,9 @@ def _extract_message(token, raw):
         ]
         text = "\n".join(file_notes) if not text else text + "\n" + "\n".join(file_notes)
 
-    sender = "Unknown"
-    from_field = raw.get("from") or {}
-    if from_field.get("user"):
-        sender = from_field["user"].get("displayName", "Unknown")
-    elif from_field.get("application"):
-        sender = from_field["application"].get("displayName", "Unknown")
-
     return {
         "id": raw["id"],
-        "sender": sender,
+        "sender": _sender_name(raw),
         "created": raw.get("createdDateTime", ""),
         "text": text,
         "images": images,
@@ -207,7 +216,7 @@ def get_messages(token, chat_id, limit=20, start=None, end=None, keyword=None):
             if end and created > end:
                 continue
 
-            if keyword and keyword.lower() not in _html_to_text(html).lower():
+            if not _matches_keyword(raw, html, keyword):
                 continue
 
             messages.append(_extract_message(token, raw))
