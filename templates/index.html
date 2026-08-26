@@ -449,7 +449,7 @@ async function runSearch() {
   if (start) params.start = start;
   if (end) params.end = end;
   if (keyword) params.keyword = keyword;
-  if (!start && !end) params.limit = 20;
+  if (!start && !end) params.limit = keyword ? 40 : 20;
 
   resetMessageView();
   const myToken = requestToken;
@@ -583,6 +583,18 @@ function setAllChecked(checked) {
   document.querySelectorAll('#messagesView .msg-checkbox').forEach(cb => cb.checked = checked);
 }
 
+function exportFileName(topic, format) {
+  const ext = format === 'txt' ? 'txt' : 'docx';
+  const clean = (topic || 'Teams Export')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+    .replace(/^\s*\d+\s*[·:]\s*/, '')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, ' ')
+    .slice(0, 80);
+  return `${clean || 'Teams Export'} - teams_export.${ext}`;
+}
+
 async function exportSelected(format) {
   const ids = Array.from(document.querySelectorAll('#messagesView .msg-checkbox:checked')).map(cb => cb.dataset.id);
   if (!ids.length) { alert('No messages selected'); return; }
@@ -596,7 +608,7 @@ async function exportSelected(format) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = format === 'txt' ? 'teams_export.txt' : 'teams_export.docx';
+  a.download = exportFileName(currentChatTopic, format);
   a.click();
   URL.revokeObjectURL(url);
 }
