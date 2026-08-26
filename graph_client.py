@@ -183,8 +183,13 @@ def get_messages(token, chat_id, limit=20, start=None, end=None, keyword=None):
     url = f"{GRAPH_BASE}/chats/{chat_id}/messages?$top=50&$orderby=createdDateTime desc"
     ranged = bool(start or end)
     hard_cap = 1000 if ranged else limit
+    # Safety net for a non-ranged keyword search: a rare or absent keyword
+    # would otherwise page all the way back through the chat's entire
+    # history (len(messages) never reaches hard_cap) before giving up.
+    max_scanned = 1000 if ranged else 500
+    scanned = 0
 
-    while url and len(messages) < hard_cap:
+    while url and len(messages) < hard_cap and scanned < max_scanned:
         data = _get(token, url)
         stop = False
         for raw in data.get("value", []):
@@ -193,6 +198,7 @@ def get_messages(token, chat_id, limit=20, start=None, end=None, keyword=None):
             html = (raw.get("body", {}) or {}).get("content", "") or ""
             if not html and not raw.get("attachments"):
                 continue
+            scanned += 1
 
             created = raw.get("createdDateTime", "")
             if start and created < start:
@@ -208,7 +214,7 @@ def get_messages(token, chat_id, limit=20, start=None, end=None, keyword=None):
             if not ranged and len(messages) >= limit:
                 stop = True
                 break
-        if stop:
+        if stop or scanned >= max_scanned:
             break
         url = data.get("@odata.nextLink")
 

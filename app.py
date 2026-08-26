@@ -170,15 +170,19 @@ def api_messages():
         messages = graph_client.get_messages(token, chat_id, start=start, end=end, keyword=keyword)
         _next_cursor.pop(key, None)
         has_more = False
+    elif keyword:
+        limit = int(request.args.get("limit", 20))
+        # No date range: keep paging further back through history (like
+        # get_messages does for a ranged search) until enough keyword
+        # matches are found, rather than only checking the latest page.
+        messages = graph_client.get_messages(token, chat_id, limit=limit, keyword=keyword)
+        _next_cursor.pop(key, None)
+        has_more = False
     else:
         limit = int(request.args.get("limit", 20))
         messages, next_url = graph_client.get_messages_page(token, chat_id, top=limit)
-        if keyword:
-            messages = [m for m in messages if keyword.lower() in m["text"].lower()]
-            has_more = False
-        else:
-            _next_cursor[key] = next_url
-            has_more = bool(next_url)
+        _next_cursor[key] = next_url
+        has_more = bool(next_url)
 
     _cache_messages(key, messages)
     return jsonify({"messages": _serialize(messages), "has_more": has_more})
