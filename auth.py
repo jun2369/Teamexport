@@ -34,10 +34,11 @@ def save_cache(sid, cache):
             f.write(cache.serialize())
 
 
-def build_auth_code_flow():
-    return _build_msal_app().initiate_auth_code_flow(
-        config.SCOPES, redirect_uri=config.REDIRECT_URI
-    )
+def build_auth_code_flow(prompt=None):
+    kwargs = {"redirect_uri": config.REDIRECT_URI}
+    if prompt:
+        kwargs["prompt"] = prompt
+    return _build_msal_app().initiate_auth_code_flow(config.SCOPES, **kwargs)
 
 
 def acquire_token_by_flow(sid, flow, auth_response):

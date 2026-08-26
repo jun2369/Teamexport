@@ -67,7 +67,21 @@ def index():
 @app.route("/login")
 def login():
     _sid()
-    flow = auth.build_auth_code_flow()
+    # Always show Microsoft's account picker instead of silently continuing
+    # whatever account happens to already have an SSO session in this
+    # browser, since a user may have more than one signed in.
+    flow = auth.build_auth_code_flow(prompt="select_account")
+    session["flow"] = flow
+    return redirect(flow["auth_uri"])
+
+
+@app.route("/switch-account")
+def switch_account():
+    sid = _sid()
+    # Drop the cached account first so the callback doesn't end up with two
+    # accounts stacked in the same token cache — only the newly picked one.
+    auth.logout(sid)
+    flow = auth.build_auth_code_flow(prompt="select_account")
     session["flow"] = flow
     return redirect(flow["auth_uri"])
 
