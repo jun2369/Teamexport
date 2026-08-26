@@ -13,11 +13,12 @@
   }
   h2 { margin: 0; font-size: 17px; }
   .panel {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 14px;
-    background: #fafafa;
+    border: 1px solid #e5e5ea;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(38, 38, 64, 0.04), 0 6px 16px rgba(38, 38, 64, 0.05);
   }
   select, button, input[type="date"], input[type="text"] {
     padding: 7px 10px;
@@ -80,7 +81,7 @@
     display: none;
   }
 
-  .main { flex: 1; padding: 24px 28px; max-width: 980px; }
+  .main { flex: 1; padding: 28px 36px; background: #f7f7fb; }
   .view { display: none; }
   .view.active { display: block; }
 
@@ -100,12 +101,13 @@
   #exportHint { color: #888; font-size: 12px; }
 
   #messagesPane {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border: 1px solid #e5e5ea;
+    border-radius: 10px;
     max-height: 65vh;
     overflow-y: auto;
-    padding: 10px;
+    padding: 14px;
     background: #fff;
+    box-shadow: 0 1px 2px rgba(38, 38, 64, 0.04), 0 6px 16px rgba(38, 38, 64, 0.05);
   }
   #topLoader {
     text-align: center;
@@ -180,7 +182,13 @@
 
   /* ---- Unread view ---- */
   #unreadStatus { color: #666; font-size: 13px; margin-bottom: 12px; }
-  .unreadGroup { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+  .unreadGroup {
+    border: 1px solid #e5e5ea;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(38, 38, 64, 0.04), 0 6px 16px rgba(38, 38, 64, 0.05);
+  }
   .unreadGroup-header {
     display: flex;
     align-items: center;
