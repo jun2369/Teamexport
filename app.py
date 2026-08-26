@@ -1,7 +1,9 @@
+import io
 import secrets
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
+import requests
 from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
 
 import auth
@@ -158,6 +160,7 @@ def api_unread():
             "chat_type": c.get("chatType"),
             "count": info["count"],
             "messages": _serialize(messages),
+            "web_url": c.get("webUrl"),
         }
 
     result = [r for r in _graph_pool.map(describe, chats) if r]
@@ -252,6 +255,39 @@ def api_messages_refresh():
 
     _cache_messages(key, messages)
     return jsonify({"messages": _serialize(messages)})
+
+
+@app.route("/api/attachment")
+def api_attachment():
+    chat_id = request.args.get("chat_id")
+    message_id = request.args.get("message_id")
+    index = request.args.get("index")
+    if not (chat_id and message_id and index is not None):
+        return jsonify({"error": "chat_id, message_id, and index are required"}), 400
+
+    sid = _sid()
+    token = auth.get_access_token(sid)
+    if not token:
+        return jsonify({"error": "login_required"}), 401
+
+    message = _message_cache.get((sid, chat_id), {}).get(message_id)
+    attachments = message.get("attachments") if message else None
+    try:
+        attachment = attachments[int(index)]
+    except (TypeError, ValueError, IndexError):
+        return jsonify({"error": "attachment not found; reload the chat and try again"}), 404
+
+    try:
+        content, content_type = graph_client.fetch_attachment(token, attachment["url"])
+    except requests.HTTPError:
+        return jsonify({"error": "failed to fetch attachment from Microsoft Graph"}), 502
+
+    return send_file(
+        io.BytesIO(content),
+        as_attachment=True,
+        download_name=attachment["name"],
+        mimetype=content_type,
+    )
 
 
 @app.route("/api/export", methods=["POST"])

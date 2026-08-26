@@ -289,7 +289,21 @@
     background: var(--unread-header-bg);
     border-bottom: 1px solid var(--unread-header-border);
     padding: 8px 12px;
+    gap: 10px;
   }
+  .unreadGroup-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+  .unreadGroup-teamsLink {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    font-size: 14px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background: var(--btn-bg);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .unreadGroup-teamsLink:hover { background: var(--btn-bg-hover); }
   .unreadGroup-title { font-weight: 600; font-size: 14px; color: var(--unread-text); }
   .unreadGroup-count { font-size: 12px; color: var(--unread-text); margin-left: 6px; }
   .unreadGroup-body { padding: 10px; background: var(--panel-bg); }
@@ -497,7 +511,7 @@ function highlightHtml(s, keyword) {
   return escaped.replace(new RegExp(escapedKeyword, 'gi'), match => `<mark>${match}</mark>`);
 }
 
-function buildMessageEl(m, keyword) {
+function buildMessageEl(m, keyword, chatId) {
   const div = document.createElement('div');
   div.className = 'msg';
 
@@ -529,12 +543,10 @@ function buildMessageEl(m, keyword) {
     content.appendChild(img);
   });
 
-  (m.attachments || []).forEach(att => {
+  (m.attachments || []).forEach((att, i) => {
     const link = document.createElement('a');
     link.className = 'msg-attachment';
-    link.href = att.url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    link.href = `/api/attachment?${new URLSearchParams({ chat_id: chatId, message_id: m.id, index: i })}`;
     link.textContent = `\u{1F4CE} ${att.name}`;
     content.appendChild(link);
   });
@@ -553,7 +565,7 @@ function renderMessages(messages, prepend) {
     if (!latestLoadedCreated || m.created > latestLoadedCreated) {
       latestLoadedCreated = m.created;
     }
-    const el = buildMessageEl(m, currentKeyword);
+    const el = buildMessageEl(m, currentKeyword, currentChatId);
     if (prepend) container.insertBefore(el, container.firstChild);
     else container.appendChild(el);
   });
@@ -688,15 +700,30 @@ async function loadUnread() {
     count.className = 'unreadGroup-count';
     count.textContent = `${g.count} unread`;
     title.appendChild(count);
+    const actions = document.createElement('div');
+    actions.className = 'unreadGroup-actions';
+
     const viewBtn = document.createElement('button');
-    viewBtn.textContent = 'View in Messages';
+    viewBtn.textContent = 'Open in Team Exporter';
     viewBtn.addEventListener('click', () => openChatInMessages(g.chat_id));
+    actions.appendChild(viewBtn);
+
+    if (g.web_url) {
+      const teamsLink = document.createElement('a');
+      teamsLink.className = 'unreadGroup-teamsLink';
+      teamsLink.href = g.web_url;
+      teamsLink.target = '_blank';
+      teamsLink.rel = 'noopener noreferrer';
+      teamsLink.textContent = 'Open in Teams';
+      actions.appendChild(teamsLink);
+    }
+
     header.appendChild(title);
-    header.appendChild(viewBtn);
+    header.appendChild(actions);
 
     const body = document.createElement('div');
     body.className = 'unreadGroup-body';
-    g.messages.forEach(m => body.appendChild(buildMessageEl(m)));
+    g.messages.forEach(m => body.appendChild(buildMessageEl(m, '', g.chat_id)));
 
     group.appendChild(header);
     group.appendChild(body);
