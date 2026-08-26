@@ -7,12 +7,11 @@
   * { box-sizing: border-box; }
   body {
     font-family: Segoe UI, Arial, sans-serif;
-    max-width: 960px;
-    margin: 24px auto;
-    padding: 0 16px;
+    margin: 0;
     color: #1a1a1a;
+    background: #fff;
   }
-  h2 { margin-bottom: 4px; }
+  h2 { margin: 0; font-size: 17px; }
   .panel {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -20,7 +19,6 @@
     margin-bottom: 14px;
     background: #fafafa;
   }
-  #controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   select, button, input[type="date"], input[type="text"] {
     padding: 7px 10px;
     font-size: 14px;
@@ -37,25 +35,60 @@
   button.primary:hover { background: #1f4275; }
   #status, #chatStatus, #refreshStatus { color: #666; font-size: 13px; }
 
-  #unreadBar {
-    display: none;
-    background: #fff4e5;
-    border: 1px solid #f2c078;
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin-bottom: 14px;
-    font-size: 13px;
+  /* ---- App shell: sidebar + main ---- */
+  .app { display: flex; align-items: stretch; min-height: 100vh; }
+  .sidebar {
+    width: 220px;
+    flex: none;
+    background: #f5f6f8;
+    border-right: 1px solid #e0e0e0;
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
-  #unreadBar .unread-chat {
-    cursor: pointer;
-    color: #8a4b00;
-    text-decoration: underline;
-    margin-right: 6px;
+  .sidebar h2 { margin-bottom: 4px; }
+  #userBar { color: #666; font-size: 12.5px; margin-bottom: 18px; word-break: break-word; }
+  #userBar a { color: #2b579a; }
+
+  .navItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 9px 10px;
+    font-size: 14px;
+    color: #333;
+  }
+  .navItem:hover { background: #e9ebef; }
+  .navItem.active { background: #2b579a; color: #fff; }
+  .navItem.active .badge { background: #fff; color: #c0392b; }
+
+  .badge {
+    background: #e0333f;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    min-width: 18px;
+    text-align: center;
+    display: none;
   }
 
-  #filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  #filters input[type="text"] { width: 200px; }
-  #filterHint { color: #888; font-size: 12px; }
+  .main { flex: 1; padding: 24px 28px; max-width: 980px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  #searchPanel { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  #searchPanel .field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #666; }
+  #searchPanel input, #searchPanel select { font-size: 14px; }
+  #keyword { width: 200px; }
+  #searchHint { color: #888; font-size: 12px; width: 100%; margin-top: 2px; }
 
   #toolbar {
     display: none;
@@ -96,49 +129,96 @@
   .msg-text { white-space: pre-wrap; margin-top: 4px; }
   .msg img { max-width: 200px; max-height: 150px; display: block; margin-top: 6px; border: 1px solid #ccc; border-radius: 4px; }
   .msg-attachment { display: block; margin-top: 6px; font-size: 13px; color: #2b579a; }
-  #userBar { color: #666; font-size: 13px; margin-bottom: 10px; }
-  #userBar a { color: #2b579a; }
+
+  /* ---- Unread view ---- */
+  #unreadStatus { color: #666; font-size: 13px; margin-bottom: 12px; }
+  .unreadGroup { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+  .unreadGroup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff4e5;
+    border-bottom: 1px solid #f2c078;
+    padding: 8px 12px;
+  }
+  .unreadGroup-title { font-weight: 600; font-size: 14px; color: #8a4b00; }
+  .unreadGroup-count { font-size: 12px; color: #8a4b00; margin-left: 6px; }
+  .unreadGroup-body { padding: 10px; background: #fff; }
+  #unreadEmpty { color: #888; font-size: 14px; padding: 20px 0; }
 </style>
 </head>
 <body>
-  <h2>Teams Message Exporter</h2>
-
 {% if username %}
-  <div id="userBar">Signed in as {{ username }} &middot; <a href="/logout">Sign out</a></div>
+  <div class="app">
+    <nav class="sidebar">
+      <h2>Teams Message<br>Exporter</h2>
+      <div id="userBar">Signed in as {{ username }}<br><a href="/logout">Sign out</a></div>
+      <button class="navItem active" id="navMessages" data-view="messagesView">
+        <span>&#128172; Messages</span>
+      </button>
+      <button class="navItem" id="navUnread" data-view="unreadView">
+        <span>&#128308; Unread</span>
+        <span id="unreadBadge" class="badge">0</span>
+      </button>
+    </nav>
 
-  <div id="unreadBar"></div>
+    <main class="main">
+      <div id="messagesView" class="view active">
+        <div class="panel" id="searchPanel">
+          <div class="field">
+            <label for="chatSelect">Chat</label>
+            <select id="chatSelect"></select>
+          </div>
+          <div class="field">
+            <label for="startDate">From</label>
+            <input type="date" id="startDate">
+          </div>
+          <div class="field">
+            <label for="endDate">To</label>
+            <input type="date" id="endDate">
+          </div>
+          <div class="field">
+            <label for="keyword">Keyword</label>
+            <input type="text" id="keyword" placeholder="filter by text">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button id="searchBtn" class="primary">Search</button>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button id="resetBtn">Reset</button>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button id="refreshBtn">Refresh</button>
+          </div>
+          <span id="chatStatus"></span>
+          <span id="status"></span>
+          <span id="refreshStatus"></span>
+          <span id="searchHint">Pick a chat, optionally narrow by date (max 20 days) and/or keyword, then click Search. Leave the dates blank to load the most recent messages.</span>
+        </div>
 
-  <div class="panel" id="controls">
-    <label for="chatSelect">Chat:</label>
-    <select id="chatSelect"></select>
-    <button id="loadBtn" class="primary">Load</button>
-    <button id="resetBtn">Reset</button>
-    <button id="refreshBtn">Refresh</button>
-    <span id="chatStatus"></span>
-    <span id="status"></span>
-    <span id="refreshStatus"></span>
+        <div id="toolbar">
+          <button id="selectAllBtn">Select all</button>
+          <button id="selectNoneBtn">Select none</button>
+          <button id="exportWordBtn" class="primary">Export to Word</button>
+          <button id="exportTxtBtn">Export to TXT</button>
+          <span id="exportHint">TXT export is text only — images are not included.</span>
+        </div>
+
+        <div id="topLoader">Loading older messages...</div>
+        <div id="messagesPane"><div id="messages"></div></div>
+      </div>
+
+      <div id="unreadView" class="view">
+        <div id="unreadStatus"></div>
+        <div id="unreadContent"></div>
+      </div>
+    </main>
   </div>
-
-  <div class="panel" id="filters">
-    <label>From: <input type="date" id="startDate"></label>
-    <label>To: <input type="date" id="endDate"></label>
-    <label>Keyword: <input type="text" id="keyword" placeholder="filter by text"></label>
-    <button id="searchBtn">Search</button>
-    <span id="filterHint">(date range max 20 days; keyword alone filters within the currently loaded messages' load)</span>
-  </div>
-
-  <div id="toolbar">
-    <button id="selectAllBtn">Select all</button>
-    <button id="selectNoneBtn">Select none</button>
-    <button id="exportWordBtn" class="primary">Export to Word</button>
-    <button id="exportTxtBtn">Export to TXT</button>
-    <span id="exportHint">TXT export is text only — images are not included.</span>
-  </div>
-
-  <div id="topLoader">Loading older messages...</div>
-  <div id="messagesPane"><div id="messages"></div></div>
 {% else %}
-  <div class="panel">
+  <div class="panel" style="max-width: 480px; margin: 60px auto;">
     <p>Sign in with your Microsoft Teams account to use the exporter.</p>
     <a href="/login"><button class="primary">Sign in with Microsoft</button></a>
   </div>
@@ -171,6 +251,33 @@ function chatOptionLabel(c) {
   return label;
 }
 
+function switchView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewId));
+  document.querySelectorAll('.navItem').forEach(n => n.classList.toggle('active', n.dataset.view === viewId));
+  if (viewId === 'unreadView') loadUnread();
+}
+
+document.getElementById('navMessages').addEventListener('click', () => switchView('messagesView'));
+document.getElementById('navUnread').addEventListener('click', () => switchView('unreadView'));
+
+function updateUnreadBadge(chats) {
+  const unreadChats = chats.filter(c => c.unread);
+  const badge = document.getElementById('unreadBadge');
+  if (!unreadChats.length) {
+    badge.style.display = 'none';
+    return;
+  }
+  let total = 0;
+  let approx = false;
+  unreadChats.forEach(c => {
+    const n = parseInt(c.unread_count, 10);
+    if (!isNaN(n)) total += n;
+    if (typeof c.unread_count === 'string' && c.unread_count.endsWith('+')) approx = true;
+  });
+  badge.textContent = approx ? `${total}+` : String(total);
+  badge.style.display = 'inline-block';
+}
+
 async function loadChats(preserveSelection = true) {
   document.getElementById('chatStatus').textContent = 'Loading chats...';
   const res = await apiFetch('/api/chats');
@@ -197,40 +304,53 @@ async function loadChats(preserveSelection = true) {
   select.selectedIndex = selectIndex;
   document.getElementById('chatStatus').textContent = '';
 
-  renderUnreadBar(chats);
+  updateUnreadBadge(chats);
 }
 
-function renderUnreadBar(chats) {
-  const unread = chats.filter(c => c.unread);
-  const bar = document.getElementById('unreadBar');
-  if (!unread.length) {
-    bar.style.display = 'none';
-    bar.innerHTML = '';
-    return;
-  }
-  bar.style.display = 'block';
-  const summary = `${unread.length} chat(s) with unread messages: `;
-  bar.innerHTML = summary;
-  unread.forEach(c => {
-    const span = document.createElement('span');
-    span.className = 'unread-chat';
-    span.textContent = `${c.topic} (${c.unread_count})`;
-    span.addEventListener('click', () => {
-      document.getElementById('chatSelect').value = c.id;
-      loadInitial();
-    });
-    bar.appendChild(span);
+function buildMessageEl(m) {
+  const div = document.createElement('div');
+  div.className = 'msg';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.dataset.id = m.id;
+  checkbox.className = 'msg-checkbox';
+
+  const content = document.createElement('div');
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.textContent = m.sender;
+  const time = document.createElement('span');
+  time.className = 'msg-time';
+  time.textContent = new Date(m.created).toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' });
+  meta.appendChild(time);
+
+  const text = document.createElement('div');
+  text.className = 'msg-text';
+  text.textContent = m.text;
+
+  content.appendChild(meta);
+  content.appendChild(text);
+
+  m.image_data_uris.forEach(uri => {
+    const img = document.createElement('img');
+    img.src = uri;
+    content.appendChild(img);
   });
-}
 
-function resetMessageView() {
-  requestToken++;
-  document.getElementById('messages').innerHTML = '';
-  document.getElementById('toolbar').style.display = 'none';
-  document.getElementById('topLoader').style.display = 'none';
-  loadedIds = new Set();
-  hasMore = false;
-  latestLoadedCreated = null;
+  (m.attachments || []).forEach(att => {
+    const link = document.createElement('a');
+    link.className = 'msg-attachment';
+    link.href = att.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = `\u{1F4CE} ${att.name}`;
+    content.appendChild(link);
+  });
+
+  div.appendChild(checkbox);
+  div.appendChild(content);
+  return div;
 }
 
 function renderMessages(messages, prepend) {
@@ -242,82 +362,23 @@ function renderMessages(messages, prepend) {
     if (!latestLoadedCreated || m.created > latestLoadedCreated) {
       latestLoadedCreated = m.created;
     }
-
-    const div = document.createElement('div');
-    div.className = 'msg';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.dataset.id = m.id;
-    checkbox.className = 'msg-checkbox';
-
-    const content = document.createElement('div');
-    const meta = document.createElement('div');
-    meta.className = 'msg-meta';
-    meta.textContent = m.sender;
-    const time = document.createElement('span');
-    time.className = 'msg-time';
-    time.textContent = new Date(m.created).toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' });
-    meta.appendChild(time);
-
-    const text = document.createElement('div');
-    text.className = 'msg-text';
-    text.textContent = m.text;
-
-    content.appendChild(meta);
-    content.appendChild(text);
-
-    m.image_data_uris.forEach(uri => {
-      const img = document.createElement('img');
-      img.src = uri;
-      content.appendChild(img);
-    });
-
-    (m.attachments || []).forEach(att => {
-      const link = document.createElement('a');
-      link.className = 'msg-attachment';
-      link.href = att.url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.textContent = `\u{1F4CE} ${att.name}`;
-      content.appendChild(link);
-    });
-
-    div.appendChild(checkbox);
-    div.appendChild(content);
-
-    if (prepend) container.insertBefore(div, container.firstChild);
-    else container.appendChild(div);
+    const el = buildMessageEl(m);
+    if (prepend) container.insertBefore(el, container.firstChild);
+    else container.appendChild(el);
   });
 
   document.getElementById('toolbar').style.display = loadedIds.size ? 'flex' : 'none';
   return fresh.length;
 }
 
-async function loadInitial() {
-  const select = document.getElementById('chatSelect');
-  if (!select.value) { alert('Pick a chat first'); return; }
-  currentChatId = select.value;
-  currentChatTopic = select.options[select.selectedIndex].textContent;
-
-  resetMessageView();
-  const myToken = requestToken;
-  document.getElementById('status').textContent = 'Loading...';
-  const res = await apiFetch(`/api/messages?${new URLSearchParams({ chat_id: currentChatId, limit: 20 })}`);
-  if (myToken !== requestToken) return;
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    document.getElementById('status').textContent = err.error || 'Error loading messages';
-    return;
-  }
-  const data = await res.json();
-  if (myToken !== requestToken) return;
-  renderMessages(data.messages, false);
-  hasMore = data.has_more;
-  document.getElementById('status').textContent = `${data.messages.length} messages`;
-
-  const pane = document.getElementById('messagesPane');
-  pane.scrollTop = pane.scrollHeight;
+function resetMessageView() {
+  requestToken++;
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('topLoader').style.display = 'none';
+  loadedIds = new Set();
+  hasMore = false;
+  latestLoadedCreated = null;
 }
 
 async function loadMore() {
@@ -345,7 +406,7 @@ document.getElementById('messagesPane').addEventListener('scroll', () => {
   if (pane.scrollTop < 60) loadMore();
 });
 
-async function searchByDate() {
+async function runSearch() {
   const select = document.getElementById('chatSelect');
   if (!select.value) { alert('Pick a chat first'); return; }
   currentChatId = select.value;
@@ -382,6 +443,70 @@ async function searchByDate() {
   renderMessages(data.messages, false);
   hasMore = data.has_more;
   document.getElementById('status').textContent = `${data.messages.length} messages`;
+
+  const pane = document.getElementById('messagesPane');
+  pane.scrollTop = pane.scrollHeight;
+}
+
+function openChatInMessages(chatId) {
+  switchView('messagesView');
+  const select = document.getElementById('chatSelect');
+  select.value = chatId;
+  document.getElementById('startDate').value = '';
+  document.getElementById('endDate').value = '';
+  document.getElementById('keyword').value = '';
+  runSearch();
+}
+
+async function loadUnread() {
+  const status = document.getElementById('unreadStatus');
+  const content = document.getElementById('unreadContent');
+  status.textContent = 'Loading unread messages...';
+  content.innerHTML = '';
+
+  const res = await apiFetch('/api/unread');
+  if (!res.ok) {
+    status.textContent = 'Error loading unread messages';
+    return;
+  }
+  const groups = await res.json();
+
+  if (!groups.length) {
+    status.textContent = '';
+    content.innerHTML = '<div id="unreadEmpty">You’re all caught up — no unread messages.</div>';
+    return;
+  }
+
+  status.textContent = `${groups.length} chat(s) with unread messages`;
+  groups.forEach(g => {
+    const group = document.createElement('div');
+    group.className = 'unreadGroup';
+
+    const header = document.createElement('div');
+    header.className = 'unreadGroup-header';
+    const title = document.createElement('span');
+    title.className = 'unreadGroup-title';
+    title.textContent = (g.chat_type === 'meeting' ? '\u{1F4C5} ' : '') + g.chat_topic;
+    const count = document.createElement('span');
+    count.className = 'unreadGroup-count';
+    count.textContent = `${g.count} unread`;
+    title.appendChild(count);
+    const viewBtn = document.createElement('button');
+    viewBtn.textContent = 'View in Messages';
+    viewBtn.addEventListener('click', () => openChatInMessages(g.chat_id));
+    header.appendChild(title);
+    header.appendChild(viewBtn);
+
+    const body = document.createElement('div');
+    body.className = 'unreadGroup-body';
+    g.messages.forEach(m => body.appendChild(buildMessageEl(m)));
+
+    group.appendChild(header);
+    group.appendChild(body);
+    content.appendChild(group);
+  });
+
+  content.querySelectorAll('.msg-checkbox').forEach(cb => cb.style.display = 'none');
 }
 
 async function refreshMessages(manual) {
@@ -405,6 +530,10 @@ async function refreshMessages(manual) {
     }
   }
 
+  if (document.getElementById('unreadView').classList.contains('active')) {
+    loadUnread();
+  }
+
   if (manual) {
     document.getElementById('refreshStatus').textContent = 'Refreshed';
     setTimeout(() => { document.getElementById('refreshStatus').textContent = ''; }, 3000);
@@ -423,11 +552,11 @@ function resetAll() {
 }
 
 function setAllChecked(checked) {
-  document.querySelectorAll('.msg-checkbox').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('#messagesView .msg-checkbox').forEach(cb => cb.checked = checked);
 }
 
 async function exportSelected(format) {
-  const ids = Array.from(document.querySelectorAll('.msg-checkbox:checked')).map(cb => cb.dataset.id);
+  const ids = Array.from(document.querySelectorAll('#messagesView .msg-checkbox:checked')).map(cb => cb.dataset.id);
   if (!ids.length) { alert('No messages selected'); return; }
 
   const res = await fetch('/api/export', {
@@ -444,10 +573,9 @@ async function exportSelected(format) {
   URL.revokeObjectURL(url);
 }
 
-document.getElementById('loadBtn').addEventListener('click', loadInitial);
 document.getElementById('resetBtn').addEventListener('click', resetAll);
 document.getElementById('refreshBtn').addEventListener('click', () => refreshMessages(true));
-document.getElementById('searchBtn').addEventListener('click', searchByDate);
+document.getElementById('searchBtn').addEventListener('click', runSearch);
 document.getElementById('selectAllBtn').addEventListener('click', () => setAllChecked(true));
 document.getElementById('selectNoneBtn').addEventListener('click', () => setAllChecked(false));
 document.getElementById('exportWordBtn').addEventListener('click', () => exportSelected('docx'));

@@ -112,6 +112,37 @@ def api_chats():
     return jsonify(result)
 
 
+@app.route("/api/unread")
+def api_unread():
+    sid = _sid()
+    token = auth.get_access_token(sid)
+    if not token:
+        return jsonify({"error": "login_required"}), 401
+
+    chats = graph_client.list_chats(token)
+    result = []
+    for c in chats:
+        if c.get("chatType") not in ("group", "oneOnOne", "meeting"):
+            continue
+        info = graph_client.chat_unread_info(token, c)
+        if not info["unread"]:
+            continue
+        messages = graph_client.get_new_messages(token, c["id"], info["last_read"])
+        if not messages:
+            continue
+        _cache_messages((sid, c["id"]), messages)
+        result.append(
+            {
+                "chat_id": c["id"],
+                "chat_topic": graph_client.chat_display_name(token, c),
+                "chat_type": c.get("chatType"),
+                "count": info["count"],
+                "messages": _serialize(messages),
+            }
+        )
+    return jsonify(result)
+
+
 @app.route("/api/messages")
 def api_messages():
     chat_id = request.args.get("chat_id")

@@ -89,19 +89,19 @@ def chat_unread_info(token, chat):
     preview = chat.get("lastMessagePreview") or {}
     last_created = preview.get("createdDateTime")
     if not last_created:
-        return {"unread": False, "count": None}
+        return {"unread": False, "count": None, "last_read": None}
 
     last_read = (chat.get("viewpoint") or {}).get("lastMessageReadDateTime")
     if not last_read:
         # Graph frequently omits viewpoint.lastMessageReadDateTime (a known
         # API gap, especially for group chats). Without it we can't tell
         # whether the chat is actually unread, so don't guess "unread".
-        return {"unread": False, "count": None}
+        return {"unread": False, "count": None, "last_read": None}
     if _parse_dt(last_created) <= _parse_dt(last_read):
-        return {"unread": False, "count": None}
+        return {"unread": False, "count": None, "last_read": last_read}
 
     count = _count_messages_since(token, chat["id"], last_read)
-    return {"unread": True, "count": count}
+    return {"unread": True, "count": count, "last_read": last_read}
 
 
 def _fetch_hosted_image(token, url):
