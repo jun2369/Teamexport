@@ -1,4 +1,5 @@
 import secrets
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
 from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
@@ -14,6 +15,12 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
 app.config["SESSION_COOKIE_SECURE"] = config.REDIRECT_URI.startswith("https")
 
 MAX_DATE_RANGE_DAYS = 20
+
+# Fetching unread status/messages does an extra Graph call per unread chat
+# (chat_unread_info's message count, and get_new_messages for /api/unread).
+# Running those concurrently instead of one-by-one is what keeps the chat
+# list from taking seconds to load when several chats are unread.
+_graph_pool = ThreadPoolExecutor(max_workers=8)
 
 
 def _sid():
@@ -108,21 +115,21 @@ def api_chats():
     token = auth.get_access_token(_sid())
     if not token:
         return jsonify({"error": "login_required"}), 401
-    chats = graph_client.list_chats(token)
-    result = []
-    for c in chats:
-        if c.get("chatType") not in ("group", "oneOnOne", "meeting"):
-            continue
+    chats = [
+        c for c in graph_client.list_chats(token) if c.get("chatType") in ("group", "oneOnOne", "meeting")
+    ]
+
+    def describe(c):
         unread = graph_client.chat_unread_info(token, c)
-        result.append(
-            {
-                "id": c["id"],
-                "topic": graph_client.chat_display_name(token, c),
-                "chat_type": c.get("chatType"),
-                "unread": unread["unread"],
-                "unread_count": unread["count"],
-            }
-        )
+        return {
+            "id": c["id"],
+            "topic": graph_client.chat_display_name(token, c),
+            "chat_type": c.get("chatType"),
+            "unread": unread["unread"],
+            "unread_count": unread["count"],
+        }
+
+    result = list(_graph_pool.map(describe, chats))
     return jsonify(result)
 
 
@@ -133,27 +140,27 @@ def api_unread():
     if not token:
         return jsonify({"error": "login_required"}), 401
 
-    chats = graph_client.list_chats(token)
-    result = []
-    for c in chats:
-        if c.get("chatType") not in ("group", "oneOnOne", "meeting"):
-            continue
+    chats = [
+        c for c in graph_client.list_chats(token) if c.get("chatType") in ("group", "oneOnOne", "meeting")
+    ]
+
+    def describe(c):
         info = graph_client.chat_unread_info(token, c)
         if not info["unread"]:
-            continue
+            return None
         messages = graph_client.get_new_messages(token, c["id"], info["last_read"])
         if not messages:
-            continue
+            return None
         _cache_messages((sid, c["id"]), messages)
-        result.append(
-            {
-                "chat_id": c["id"],
-                "chat_topic": graph_client.chat_display_name(token, c),
-                "chat_type": c.get("chatType"),
-                "count": info["count"],
-                "messages": _serialize(messages),
-            }
-        )
+        return {
+            "chat_id": c["id"],
+            "chat_topic": graph_client.chat_display_name(token, c),
+            "chat_type": c.get("chatType"),
+            "count": info["count"],
+            "messages": _serialize(messages),
+        }
+
+    result = [r for r in _graph_pool.map(describe, chats) if r]
     return jsonify(result)
 
 
