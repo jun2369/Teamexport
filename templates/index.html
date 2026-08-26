@@ -143,6 +143,41 @@
   #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 4px; }
   .msg-attachment { display: block; margin-top: 6px; font-size: 13px; color: #2b579a; }
 
+  /* ---- Sign-in page ---- */
+  .signinPage { display: flex; min-height: 100vh; }
+  .signinPanel {
+    width: 300px;
+    flex: none;
+    background: linear-gradient(160deg, #464775, #6264a7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 32px;
+  }
+  .signinGlyph { width: 92px; height: 92px; }
+  .signinGlyph rect, .signinGlyph polygon { fill: rgba(255, 255, 255, 0.92); }
+  .signinGlyph .badge { fill: #2f9e6e; }
+  .signinGlyph .arrow { stroke: #fff; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  .signinTagline { color: #fff; font-weight: 700; font-size: 15px; text-align: center; line-height: 1.4; }
+  .signinContent {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+    padding: 24px;
+  }
+  .signinCard { max-width: 380px; width: 100%; margin: 0; }
+  .signinCard p { margin-top: 0; }
+  @media (max-width: 640px) {
+    .signinPage { flex-direction: column; }
+    .signinPanel { width: 100%; padding: 24px; flex-direction: row; }
+    .signinGlyph { width: 56px; height: 56px; }
+    .signinTagline { text-align: left; }
+  }
+
   /* ---- Unread view ---- */
   #unreadStatus { color: #666; font-size: 13px; margin-bottom: 12px; }
   .unreadGroup { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
@@ -232,9 +267,25 @@
   </div>
   <div id="lightbox"><img id="lightboxImg"></div>
 {% else %}
-  <div class="panel" style="max-width: 480px; margin: 60px auto;">
-    <p>Sign in with your Microsoft Teams account to use the exporter.</p>
-    <a href="/login"><button class="primary">Sign in with Microsoft</button></a>
+  <div class="signinPage">
+    <div class="signinPanel">
+      <svg class="signinGlyph" viewBox="0 0 120 120" aria-hidden="true">
+        <rect x="14" y="14" width="80" height="58" rx="16"></rect>
+        <polygon points="34,72 34,90 50,72"></polygon>
+        <circle class="badge" cx="86" cy="80" r="22"></circle>
+        <g class="arrow" transform="translate(86,80)">
+          <line x1="0" y1="-9" x2="0" y2="9"></line>
+          <polyline points="-7,-2 0,-9 7,-2"></polyline>
+        </g>
+      </svg>
+      <div class="signinTagline">Nimbus<br>Teams Exporter</div>
+    </div>
+    <div class="signinContent">
+      <div class="panel signinCard">
+        <p>Sign in with your Microsoft Teams account to use the exporter.</p>
+        <a href="/login"><button class="primary">Sign in with Microsoft</button></a>
+      </div>
+    </div>
   </div>
 {% endif %}
 
