@@ -246,7 +246,7 @@ def get_messages_page(token, chat_id, top=20, next_url=None):
     for raw in data.get("value", []):
         if raw.get("messageType") != "message":
             continue
-        if not (raw.get("body", {}) or {}).get("content"):
+        if not (raw.get("body", {}) or {}).get("content") and not raw.get("attachments"):
             continue
         messages.append(_extract_message(token, raw))
 
