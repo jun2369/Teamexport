@@ -20,7 +20,7 @@ def _get(token, url):
 
 def list_chats(token):
     chats = []
-    url = f"{GRAPH_BASE}/me/chats?$expand=members,lastMessagePreview,viewpoint&$top=50"
+    url = f"{GRAPH_BASE}/me/chats?$expand=members,lastMessagePreview&$top=50"
     while url:
         data = _get(token, url)
         chats.extend(data.get("value", []))
