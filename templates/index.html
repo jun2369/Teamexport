@@ -458,19 +458,24 @@ function openChatInMessages(chatId) {
   runSearch();
 }
 
+let unreadToken = 0;
+
 async function loadUnread() {
+  const myToken = ++unreadToken;
   const status = document.getElementById('unreadStatus');
   const content = document.getElementById('unreadContent');
   status.textContent = 'Loading unread messages...';
-  content.innerHTML = '';
 
   const res = await apiFetch('/api/unread');
+  if (myToken !== unreadToken) return;
   if (!res.ok) {
     status.textContent = 'Error loading unread messages';
     return;
   }
   const groups = await res.json();
+  if (myToken !== unreadToken) return;
 
+  content.innerHTML = '';
   if (!groups.length) {
     status.textContent = '';
     content.innerHTML = '<div id="unreadEmpty">You’re all caught up — no unread messages.</div>';
