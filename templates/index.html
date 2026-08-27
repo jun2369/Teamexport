@@ -416,6 +416,7 @@ let loadingMore = false;
 let latestLoadedCreated = null;
 let loadedIds = new Set();
 let autoRefreshTimer = null;
+let unreadAutoRefreshTimer = null;
 let requestToken = 0;
 
 async function apiFetch(url, opts) {
@@ -820,8 +821,16 @@ document.getElementById('selectNoneBtn').addEventListener('click', () => setAllC
 document.getElementById('exportWordBtn').addEventListener('click', () => exportSelected('docx'));
 document.getElementById('exportTxtBtn').addEventListener('click', () => exportSelected('txt'));
 
+async function refreshUnreadStatus() {
+  await loadChats();
+  if (document.getElementById('unreadView').classList.contains('active')) {
+    loadUnread();
+  }
+}
+
 loadChats(false);
 autoRefreshTimer = setInterval(() => refreshMessages(false), 20 * 60 * 1000);
+unreadAutoRefreshTimer = setInterval(refreshUnreadStatus, 6 * 60 * 1000);
 </script>
 {% endif %}
 <script>
