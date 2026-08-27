@@ -1,6 +1,6 @@
 import base64
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import requests
 from bs4 import BeautifulSoup
@@ -83,6 +83,9 @@ def _count_messages_since(token, chat_id, since, page_size=25):
     return f"{page_size}+" if count >= page_size else count
 
 
+STALE_UNREAD_CUTOFF_DAYS = 90
+
+
 def chat_unread_info(token, chat):
     """Best-effort unread status/count based on the chat's viewpoint (last read
     time) vs its most recent message, regardless of mute state."""
@@ -97,7 +100,15 @@ def chat_unread_info(token, chat):
         # API gap, especially for group chats). Without it we can't tell
         # whether the chat is actually unread, so don't guess "unread".
         return {"unread": False, "count": None, "last_read": None}
-    if _parse_dt(last_created) <= _parse_dt(last_read):
+
+    last_created_dt = _parse_dt(last_created)
+    if last_created_dt <= _parse_dt(last_read):
+        return {"unread": False, "count": None, "last_read": last_read}
+
+    # Don't keep surfacing a chat as unread indefinitely if its last message
+    # is old — that's stale noise, not something worth flagging.
+    cutoff = datetime.now(timezone.utc) - timedelta(days=STALE_UNREAD_CUTOFF_DAYS)
+    if last_created_dt < cutoff:
         return {"unread": False, "count": None, "last_read": last_read}
 
     count = _count_messages_since(token, chat["id"], last_read)
