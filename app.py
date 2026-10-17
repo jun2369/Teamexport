@@ -14,7 +14,7 @@ app.secret_key = config.FLASK_SECRET_KEY
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
 app.config["SESSION_COOKIE_SECURE"] = config.REDIRECT_URI.startswith("https")
 
-MAX_DATE_RANGE_DAYS = 20
+MAX_DATE_RANGE_DAYS = 60
 
 # Fetching unread status/messages does an extra Graph call per unread chat
 # (chat_unread_info's message count, and get_new_messages for /api/unread).

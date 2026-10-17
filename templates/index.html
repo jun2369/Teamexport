@@ -360,7 +360,7 @@
           <span id="chatStatus"></span>
           <span id="status"></span>
           <span id="refreshStatus"></span>
-          <span id="searchHint">Dates and keyword are optional (max 20-day range). Leave dates blank for the most recent messages.</span>
+          <span id="searchHint">Dates and keyword are optional (max 60-day range). Leave dates blank for the most recent messages.</span>
         </div>
 
         <div id="toolbar">
@@ -626,7 +626,7 @@ async function runSearch() {
   if (start && end) {
     const days = (new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24);
     if (days < 0) { alert('"From" date must be before "To" date'); return; }
-    if (days > 20) { alert('Date range cannot exceed 20 days'); return; }
+    if (days > 60) { alert('Date range cannot exceed 60 days'); return; }
   }
 
   const params = {};
